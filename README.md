@@ -105,12 +105,10 @@ in a real CC0 asset pack later is a pure content change, not a code
 change (see `OverworldScene.js` / `BattleScene.js`'s texture-generation
 functions).
 
+**Spaced repetition (FSRS):** implemented via the [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs) library (`game/src/scheduler.js`). Each concept has a real FSRS card (difficulty, stability, due date) persisted to `localStorage`. A monster only appears on the overworld map once its concept is due; answering it -- right or wrong -- reschedules it via FSRS and it disappears until it's next due (a wrong answer still costs a heart, but no longer lets you instantly retry the same monster, since the whole point is real spacing rather than immediate re-drilling). The HUD shows "Due now: X / Y"; when nothing's due it shows "All caught up! Next review due in ...".
+
 ## What's next (deliberately not in the MVP)
 
-- **Spaced repetition (FSRS):** right now a defeated concept is gone
-  for good. The real design has it reappear on a schedule tuned to your
-  personal forgetting curve. Not built yet -- this MVP is about proving
-  the core loop, not the retention math.
 - **Video/lecture ingestion (Whisper):** pipeline only handles `.pptx`
   today.
 - **Multi-question battles / boss fights / Zelda-style item gating:**

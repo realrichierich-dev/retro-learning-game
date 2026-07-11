@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { saveDefeated } from "./BootScene.js";
+import { getDueConceptIds, gradeConcept, earliestDue, formatTimeUntil } from "../scheduler.js";
 
 const WORLD_W = 640;
 const WORLD_H = 360;
@@ -86,8 +86,9 @@ export default class OverworldScene extends Phaser.Scene {
 
   spawnMonsters() {
     const concepts = this.registry.get("concepts");
-    const defeated = this.registry.get("defeated");
-    const alive = concepts.filter((c) => !defeated.has(c.concept_id));
+    const cards = this.registry.get("cards");
+    const dueIds = new Set(getDueConceptIds(cards));
+    const alive = concepts.filter((c) => dueIds.has(c.concept_id));
 
     const cols = 3;
     const marginX = 90;
@@ -118,8 +119,12 @@ export default class OverworldScene extends Phaser.Scene {
     });
 
     if (alive.length === 0) {
+      const due = earliestDue(cards);
+      const message = due
+        ? `All caught up!\nNext review due in ${formatTimeUntil(due)}.`
+        : "All caught up!";
       this.add
-        .text(320, 180, "All concepts cleared!\nGreat work.", {
+        .text(320, 180, message, {
           fontFamily: "monospace",
           fontSize: "16px",
           color: "#7ee787",
@@ -133,8 +138,10 @@ export default class OverworldScene extends Phaser.Scene {
     const hp = this.registry.get("playerHP");
     const maxHp = this.registry.get("playerMaxHP");
     const hearts = "♥".repeat(hp) + "♡".repeat(maxHp - hp);
-    const remaining = this.registry.get("concepts").length - this.registry.get("defeated").size;
-    this.hud.setText(`HP: ${hearts}   Concepts remaining: ${remaining}`);
+    const cards = this.registry.get("cards");
+    const total = this.registry.get("concepts").length;
+    const due = getDueConceptIds(cards).length;
+    this.hud.setText(`HP: ${hearts}   Due now: ${due} / ${total}`);
   }
 
   startEncounter(monster) {
@@ -145,11 +152,15 @@ export default class OverworldScene extends Phaser.Scene {
     this.scene.launch("BattleScene", {
       concept: monster.concept,
       onResult: (won) => {
-        if (won) {
-          this.registry.get("defeated").add(monster.concept.concept_id);
-          saveDefeated(this);
-          monster.destroy();
-        } else {
+        // Every graded review reschedules the concept's next due date via
+        // FSRS, whether the answer was right or wrong -- so the monster
+        // leaves the map either way and reappears when it's next due,
+        // rather than being permanently gone (win) or instantly retryable
+        // (loss) like the old fixed defeated-set model.
+        gradeConcept(this.registry.get("cards"), monster.concept.concept_id, won);
+        monster.destroy();
+
+        if (!won) {
           const hp = Math.max(0, this.registry.get("playerHP") - 1);
           this.registry.set("playerHP", hp === 0 ? this.registry.get("playerMaxHP") : hp);
         }

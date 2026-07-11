@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import concepts from "../data/concepts.json";
-
-const DEFEATED_KEY = "retro-learning-game:defeated";
+import { loadCards } from "../scheduler.js";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -12,14 +11,10 @@ export default class BootScene extends Phaser.Scene {
     this.registry.set("concepts", concepts.concepts);
     this.registry.set("playerHP", 3);
     this.registry.set("playerMaxHP", 3);
-
-    let defeated = [];
-    try {
-      defeated = JSON.parse(localStorage.getItem(DEFEATED_KEY) || "[]");
-    } catch (e) {
-      defeated = [];
-    }
-    this.registry.set("defeated", new Set(defeated));
+    this.registry.set(
+      "cards",
+      loadCards(concepts.concepts.map((c) => c.concept_id))
+    );
 
     this.add
       .text(320, 150, "RETRO LEARNING GAME", {
@@ -46,9 +41,4 @@ export default class BootScene extends Phaser.Scene {
     this.input.keyboard.once("keydown-SPACE", () => this.scene.start("OverworldScene"));
     this.input.once("pointerdown", () => this.scene.start("OverworldScene"));
   }
-}
-
-export function saveDefeated(scene) {
-  const defeated = scene.registry.get("defeated");
-  localStorage.setItem(DEFEATED_KEY, JSON.stringify([...defeated]));
 }
