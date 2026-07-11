@@ -72,11 +72,13 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp output/concepts.json ../game/src/data/concepts.json
 ```
 
-**Using real LLM generation instead of mock:** set `ANTHROPIC_API_KEY`
-in your shell and drop `--mock`. This calls the Anthropic API, which
-needs an Anthropic account with billing set up -- I did not create one
-or spend any money; that's a decision for Rich to make when ready.
-Nothing here requires it to work.
+**Using real LLM generation instead of mock:**
+
+1. Create a key at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) -- needs an Anthropic account with billing enabled. I did not create one or spend any money; that's Rich's call.
+2. `cp pipeline/.env.example pipeline/.env` and paste the key in as `ANTHROPIC_API_KEY=...`. `.env` is gitignored, so it never gets committed.
+3. Run `run_pipeline.py` without `--mock` (e.g. `.venv/bin/python run_pipeline.py sample_deck.pptx`). The `.env` file is loaded automatically -- no need to `export` anything by hand each session.
+
+Cost for the 6-slide sample deck is a fraction of a cent using the default Haiku model (three LLM calls per concept: generation + grounding check + self-consistency check -- see the "Cost" section below).
 
 ## The game (`game/`)
 

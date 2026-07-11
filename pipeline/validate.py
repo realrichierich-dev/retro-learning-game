@@ -21,8 +21,13 @@ import difflib
 import json
 import os
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from schema import STATUS_AUTO_PUBLISHED, STATUS_FLAGGED, concept_shape_errors
+
+load_dotenv(Path(__file__).parent / ".env")
 
 MODEL = "claude-haiku-4-5-20251001"
 

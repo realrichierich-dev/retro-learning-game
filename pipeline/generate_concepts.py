@@ -22,6 +22,11 @@ import os
 import random
 import re
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
 
 MODEL = "claude-haiku-4-5-20251001"
 

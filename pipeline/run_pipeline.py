@@ -20,10 +20,16 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from generate_concepts import generate_concepts
 from ingest_pptx import extract_slides
 from schema import SCHEMA_VERSION, STATUS_AUTO_PUBLISHED, STATUS_FLAGGED
 from validate import validate_concepts
+
+# Loads pipeline/.env if present, so ANTHROPIC_API_KEY doesn't need to be
+# exported by hand every session. Safe no-op if the file doesn't exist.
+load_dotenv(Path(__file__).parent / ".env")
 
 
 def main():
