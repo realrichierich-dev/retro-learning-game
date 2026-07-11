@@ -1,0 +1,15 @@
+# Python
+pipeline/.venv/
+pipeline/__pycache__/
+pipeline/output/
+*.pyc
+
+# Node / game
+game/node_modules/
+game/dist/
+
+# OS
+.DS_Store
+
+# secrets
+.env
