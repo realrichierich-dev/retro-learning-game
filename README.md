@@ -136,11 +136,17 @@ npm run dev
 Then open the URL it prints (usually `http://localhost:5173`).
 
 **How to play:** arrow keys / WASD to walk around. Walking into a
-colored monster starts a battle. Read the question, click (or press
-1-4) to answer. Correct = the monster is defeated permanently. Wrong =
-you lose a heart and the monster stays -- come back and try again.
-Progress (which concepts you've beaten) is saved to the browser's
-`localStorage`, so it survives a page refresh.
+colored monster starts a battle -- usually 2-3 questions in a row,
+covering the concept you walked into plus 1-2 other concepts that are
+also currently due (interleaved practice, not one concept drilled in
+isolation). Read each question, click (or press 1-4) to answer. A
+gold "BOSS" monster appears once you've reviewed at least 3 concepts;
+walking into it runs a longer composite battle covering everything
+you've reviewed so far. Every answer -- right or wrong, regular or
+boss -- reschedules that concept via FSRS (see below) and it leaves
+the map until it's next due; a wrong answer also costs a heart. All
+progress (FSRS state, HP) is saved to the browser's `localStorage`, so
+it survives a page refresh.
 
 Everything is drawn with simple colored rectangles rather than a
 licensed pixel-art pack -- that keeps the MVP at zero art cost. Swapping
@@ -152,10 +158,9 @@ functions).
 
 ## What's next (deliberately not in the MVP)
 
-- **Multi-question battles / boss fights / Zelda-style item gating:**
-  right now one battle = one question. The full design layers a
-  Zelda-style overworld with regions-per-unit and mastery-gated boss
-  fights on top of this same battle loop.
+- **Zelda-style item gating / regions-per-unit:** the overworld is still
+  a single flat map. Multi-question battles and boss fights (below) are
+  done; the region/item-unlock layer on top of them is not.
 - **Real art/audio pass, review-queue UI:** the review queue is
   currently just a JSON file (`pipeline/output/review_queue.json`), not
   a page you can click through.
