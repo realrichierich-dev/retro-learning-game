@@ -66,6 +66,18 @@ export default class OverworldScene extends Phaser.Scene {
     g.lineStyle(1, 0x1f3326, 1);
     for (let x = 0; x < WORLD_W; x += 32) g.lineBetween(x, 0, x, WORLD_H);
     for (let y = 0; y < WORLD_H; y += 32) g.lineBetween(0, y, WORLD_W, y);
+
+    // small scattered "grass tuft" decorations, deterministic per grid cell
+    // so the ground has some texture without needing any downloaded art
+    g.fillStyle(0x1f3326, 1);
+    for (let gx = 16; gx < WORLD_W; gx += 32) {
+      for (let gy = 16; gy < WORLD_H; gy += 32) {
+        if ((gx * 7 + gy * 13) % 32 < 5) {
+          g.fillRect(gx - 1, gy - 1, 2, 2);
+          g.fillRect(gx + 3, gy + 2, 2, 2);
+        }
+      }
+    }
   }
 
   playerTexture() {
@@ -80,15 +92,27 @@ export default class OverworldScene extends Phaser.Scene {
   }
 
   monsterTexture() {
+    // Each color also gets a distinct body shape, cycling through three
+    // silhouettes, so monsters read as different "species" rather than
+    // just recolors of the same square.
     MONSTER_COLORS.forEach((color, i) => {
       const key = `monster${i}`;
       if (this.textures.exists(key)) return;
       const g = this.make.graphics({ x: 0, y: 0, add: false });
       g.fillStyle(color, 1);
-      g.fillRoundedRect(0, 0, 20, 20, 4);
+
+      const shape = i % 3;
+      if (shape === 0) {
+        g.fillRoundedRect(0, 0, 20, 20, 4);
+      } else if (shape === 1) {
+        g.fillCircle(10, 10, 10);
+      } else {
+        g.fillTriangle(10, 0, 20, 18, 0, 18);
+      }
+
       g.fillStyle(0x0f0f1a, 1);
-      g.fillCircle(6, 8, 2);
-      g.fillCircle(14, 8, 2);
+      g.fillCircle(6, shape === 2 ? 12 : 8, 2);
+      g.fillCircle(14, shape === 2 ? 12 : 8, 2);
       g.generateTexture(key, 20, 20);
     });
   }
@@ -154,6 +178,17 @@ export default class OverworldScene extends Phaser.Scene {
       monster.body.setSize(20, 20);
       monster.concept = concept;
 
+      // gentle idle bob, staggered per-monster so they don't all move in lockstep
+      this.tweens.add({
+        targets: monster,
+        y: y - 3,
+        duration: 650 + (i % 3) * 80,
+        delay: i * 120,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
       this.monsterLabels.push(
         this.add
           .text(x, y - 16, concept.title, { fontFamily: "monospace", fontSize: "9px", color: "#c9d1d9" })
@@ -168,6 +203,14 @@ export default class OverworldScene extends Phaser.Scene {
       const boss = this.bossGroup.create(bossX, bossY, "boss");
       boss.setImmovable(true);
       boss.body.setSize(30, 30);
+      this.tweens.add({
+        targets: boss,
+        y: bossY - 4,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
       this.monsterLabels.push(
         this.add
           .text(bossX, bossY - 22, "BOSS", { fontFamily: "monospace", fontSize: "10px", color: "#ffd580" })

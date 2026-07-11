@@ -37,7 +37,15 @@ export default class BattleScene extends Phaser.Scene {
   create() {
     const borderColor = this.isBoss ? COLORS.bossBorder : COLORS.border;
 
+    // two-tone backdrop (a lighter "arena" band behind the monster, darker
+    // "ground" below) plus a soft shadow under the monster -- a cheap way to
+    // suggest depth without any downloaded art assets
     this.add.rectangle(320, 180, 640, 360, COLORS.bg);
+    this.add.rectangle(320, 75, 640, 150, this.isBoss ? 0x241830 : 0x1f1428);
+    this.add.ellipse(460, 118, 90, 18, 0x000000, 0.25);
+
+    // full-screen flash used as a hit-impact effect on correct answers
+    this.flash = this.add.rectangle(320, 180, 640, 360, 0xffffff).setAlpha(0).setDepth(20);
 
     if (this.isBoss) {
       this.add
@@ -191,6 +199,10 @@ export default class BattleScene extends Phaser.Scene {
     // instead of cleanly jumping to the latest one, making the bar crawl
     // toward the wrong value.
     this.tweens.killTweensOf(this.hpBar);
+
+    if (won) {
+      this.tweens.add({ targets: this.flash, alpha: { from: 0.5, to: 0 }, duration: 250 });
+    }
 
     if (this.isBoss) {
       if (won) {

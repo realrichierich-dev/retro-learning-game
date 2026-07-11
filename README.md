@@ -148,22 +148,31 @@ the map until it's next due; a wrong answer also costs a heart. All
 progress (FSRS state, HP) is saved to the browser's `localStorage`, so
 it survives a page refresh.
 
-Everything is drawn with simple colored rectangles rather than a
-licensed pixel-art pack -- that keeps the MVP at zero art cost. Swapping
-in a real CC0 asset pack later is a pure content change, not a code
-change (see `OverworldScene.js` / `BattleScene.js`'s texture-generation
-functions).
+Everything is drawn procedurally (Phaser Graphics -- colored shapes, not
+sprite images) rather than a licensed pixel-art pack, which keeps the
+MVP at zero art cost: monsters cycle through a few silhouettes (rounded
+square / circle / triangle) so they read as different "species," they
+idle-bob on the overworld, battles have a two-tone backdrop with a
+ground shadow under the monster instead of a flat rectangle, and a
+correct answer gets a quick screen-flash for impact. I deliberately did
+not download a CC0 asset pack for this pass -- that would mean fetching
+files from the internet, which needs Rich's go-ahead first. Swapping one
+in later is a pure content change, not a code change (see
+`OverworldScene.js` / `BattleScene.js`'s texture-generation functions).
 
 **Spaced repetition (FSRS):** implemented via the [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs) library (`game/src/scheduler.js`). Each concept has a real FSRS card (difficulty, stability, due date) persisted to `localStorage`. A monster only appears on the overworld map once its concept is due; answering it -- right or wrong -- reschedules it via FSRS and it disappears until it's next due (a wrong answer still costs a heart, but no longer lets you instantly retry the same monster, since the whole point is real spacing rather than immediate re-drilling). The HUD shows "Due now: X / Y"; when nothing's due it shows "All caught up! Next review due in ...".
 
 ## What's next (deliberately not in the MVP)
 
 - **Zelda-style item gating / regions-per-unit:** the overworld is still
-  a single flat map. Multi-question battles and boss fights (below) are
-  done; the region/item-unlock layer on top of them is not.
-- **Real art/audio pass, review-queue UI:** the review queue is
-  currently just a JSON file (`pipeline/output/review_queue.json`), not
-  a page you can click through.
+  a single flat map. Multi-question battles and boss fights are done
+  (see "How to play" above); the region/item-unlock layer on top of
+  them is not.
+- **Licensed art pack, audio, review-queue UI:** the visual pass so far
+  is procedural (shapes/animation, no downloaded assets -- see above).
+  There's no audio at all yet. The review queue is currently just a
+  JSON file (`pipeline/output/review_queue.json`), not a page you can
+  click through.
 - **Known rough edge:** the near-duplicate check in `validate.py`
   compares full question text, and every mock-generated question shares
   the same "Which statement about X is true?" template -- so it can
