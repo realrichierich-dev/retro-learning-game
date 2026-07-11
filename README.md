@@ -30,6 +30,22 @@ Three stages, chained by `run_pipeline.py`:
 1. **`ingest_pptx.py`** -- pulls slide titles, bullet text, and speaker
    notes out of a `.pptx` file (using `python-pptx`). No AI involved,
    purely mechanical extraction.
+
+   **`ingest_video.py`** -- the second source format, for a video/audio
+   lecture recording instead of slides. Two steps: `transcribe()` sends
+   the file to OpenAI's Whisper API (needs `OPENAI_API_KEY` -- a
+   *separate* key from the Anthropic one used everywhere else in this
+   pipeline, since Whisper is an OpenAI product), then
+   `segment_transcript()` splits the raw transcript into topic-sized
+   chunks that get treated as "slides" downstream -- either fixed-size
+   word-count windows (`--mock`, free) or one Claude call that segments
+   by actual topic shifts (real mode). `run_pipeline.py` auto-detects a
+   video/audio file by extension and routes it here instead of
+   `ingest_pptx.py`; everything downstream (generation, validation, game
+   data) is unchanged either way. Known limit: Whisper's API caps
+   uploads at 25MB -- longer recordings need to be trimmed or split
+   first, which isn't automated yet.
+
 2. **`generate_concepts.py`** -- turns each slide into a "concept": a
    title, a bit of monster/NPC flavor text, and a 4-option quiz question.
    Has two modes:
@@ -80,6 +96,33 @@ cp output/concepts.json ../game/src/data/concepts.json
 
 Cost for the 6-slide sample deck is a fraction of a cent using the default Haiku model (three LLM calls per concept: generation + grounding check + self-consistency check -- see the "Cost" section below).
 
+**Trying video ingestion:**
+
+```bash
+# generates a short sample lecture (free, local -- uses macOS's built-in
+# `say` for speech synthesis and ffmpeg to compress it, no account needed)
+.venv/bin/python make_sample_lecture.py
+
+# test segmentation/generation/validation for free, no OpenAI key needed --
+# this reads sample_lecture.txt directly and skips Whisper transcription:
+.venv/bin/python run_pipeline.py sample_lecture.txt --mock
+
+# once an OpenAI key is available (see below), test real transcription
+# against the actual synthesized audio file:
+.venv/bin/python run_pipeline.py sample_lecture.m4a
+```
+
+Whisper transcription of a real audio/video file always needs a real API
+call -- there's no free/mock stand-in for actual speech-to-text (unlike
+the Anthropic side, running a real speech-recognition model locally would
+mean installing a multi-gigabyte local model, which I deliberately did not
+do without asking first). To enable it: create a key at
+[platform.openai.com/api-keys](https://platform.openai.com/api-keys) --
+separate account/billing from Anthropic's -- and add it to `pipeline/.env`
+as `OPENAI_API_KEY=...`. Cost is about $0.006/minute of audio (a 40-second
+clip like the sample lecture is well under a cent; the build plan's cost
+section has fuller numbers for longer lectures).
+
 ## The game (`game/`)
 
 Phaser 3 + Vite. No build step needed to develop -- Vite serves it live.
@@ -109,8 +152,6 @@ functions).
 
 ## What's next (deliberately not in the MVP)
 
-- **Video/lecture ingestion (Whisper):** pipeline only handles `.pptx`
-  today.
 - **Multi-question battles / boss fights / Zelda-style item gating:**
   right now one battle = one question. The full design layers a
   Zelda-style overworld with regions-per-unit and mastery-gated boss
@@ -125,6 +166,12 @@ functions).
   deck's Mars question, which got flagged for review even though it was
   fine). Worth tightening once real LLM-generated questions replace the
   templated mock ones.
+- **Known rough edge:** `ingest_video.py`'s `--mock` segmentation splits
+  a transcript into fixed-size word-count windows, so it can cut a
+  sentence in half right at a segment boundary. Real mode's LLM-based
+  segmentation splits by topic shift instead and doesn't have this
+  problem -- the mock path exists to prove the wiring for free, not to
+  produce publish-quality segments.
 
 ## Cost
 

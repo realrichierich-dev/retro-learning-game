@@ -1,0 +1,20 @@
+Today we're going to talk about how vaccines work. A vaccine trains your immune system to
+recognize a specific pathogen, like a virus or bacterium, without making you sick from the
+real disease first. Most vaccines contain a weakened or inactivated form of the pathogen, or
+just a harmless piece of it, such as a protein from its outer surface.
+
+When that material enters your body, your immune system treats it as a threat and produces
+antibodies against it. Some of the immune cells that respond become memory cells, and they
+can persist for years or even decades. If you're ever exposed to the real pathogen later,
+those memory cells recognize it immediately and mount a much faster, stronger response than
+your immune system could manage on its own the first time.
+
+This is why vaccinated people who do get infected typically have much milder symptoms, or no
+symptoms at all, compared to someone with no prior immunity. It's also why some vaccines need
+multiple doses. The first dose primes the immune system, and a booster dose later strengthens
+that memory response and makes it last longer.
+
+Herd immunity is a related idea. When enough people in a population are immune to a disease,
+either through vaccination or prior infection, the pathogen has a much harder time spreading,
+because it runs out of new hosts to infect. This indirectly protects people who can't be
+vaccinated themselves, such as newborns or people with certain medical conditions.
