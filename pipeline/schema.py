@@ -11,6 +11,22 @@ SCHEMA_VERSION exists so the game client and pipeline can detect a mismatch late
 
 SCHEMA_VERSION = 1
 
+
+def strip_json_fences(text: str) -> str:
+    """
+    Claude is asked for a bare JSON response in every prompt this pipeline
+    sends, but in practice it sometimes wraps the answer in a markdown code
+    fence (```json ... ```) anyway despite being told not to -- a real,
+    observed behavior, not a hypothetical. Stripping defensively here is
+    more reliable than trying to word the prompt into perfect compliance.
+    """
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.rstrip().endswith("```"):
+            text = text.rstrip()[: -3]
+    return text.strip()
+
 # Statuses a concept can end up with after validate.py
 STATUS_AUTO_PUBLISHED = "auto_published"
 STATUS_FLAGGED = "flagged_for_review"

@@ -26,6 +26,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from schema import strip_json_fences
+
 load_dotenv(Path(__file__).parent / ".env")
 
 MODEL = "claude-haiku-4-5-20251001"
@@ -147,7 +149,7 @@ def generate_concept_real(slide: dict, concept_id: str) -> dict:
         max_tokens=600,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = response.content[0].text.strip()
+    text = strip_json_fences(response.content[0].text)
     data = json.loads(text)
     data["concept_id"] = concept_id
     data["_source_slide_index"] = slide["slide_index"]

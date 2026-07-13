@@ -34,6 +34,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from schema import strip_json_fences
+
 load_dotenv(Path(__file__).parent / ".env")
 
 WHISPER_MODEL = "whisper-1"
@@ -120,7 +122,7 @@ def segment_transcript_real(transcript: str) -> list[dict]:
         max_tokens=4000,
         messages=[{"role": "user", "content": SEGMENTATION_PROMPT.format(transcript=transcript)}],
     )
-    segments = json.loads(response.content[0].text.strip())
+    segments = json.loads(strip_json_fences(response.content[0].text))
     return [
         {"slide_index": i, "title": seg["title"], "bullets": seg["bullets"], "notes": ""}
         for i, seg in enumerate(segments)

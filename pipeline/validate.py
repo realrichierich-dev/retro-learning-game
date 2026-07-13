@@ -25,7 +25,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from schema import STATUS_AUTO_PUBLISHED, STATUS_FLAGGED, concept_shape_errors
+from schema import STATUS_AUTO_PUBLISHED, STATUS_FLAGGED, concept_shape_errors, strip_json_fences
 
 load_dotenv(Path(__file__).parent / ".env")
 
@@ -104,7 +104,7 @@ def _call_claude_json(client, model, prompt):
     response = client.messages.create(
         model=model, max_tokens=300, messages=[{"role": "user", "content": prompt}]
     )
-    return json.loads(response.content[0].text.strip())
+    return json.loads(strip_json_fences(response.content[0].text))
 
 
 def check_grounding_real(client, concept: dict, source_text: str) -> dict:
