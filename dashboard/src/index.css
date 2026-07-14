@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/*
+ * Per-tenant theme, as CSS custom properties. Defaults match the game's
+ * current retro palette (game/src/scenes/BattleScene.js's COLORS const).
+ * The branding settings page overwrites these three values at runtime
+ * from the signed-in tenant's row; nothing else in this app should
+ * hardcode a brand color -- reference var(--theme-*) instead, the same
+ * way the eventual game-client integration will (Phaser can't read CSS
+ * variables directly since it renders to canvas, so that side fetches
+ * the same three values as a plain JS object instead -- see
+ * PLATFORM-ROADMAP.md's branding section).
+ */
+:root {
+  --theme-primary: #7ee787;
+  --theme-accent: #58a6ff;
+  --theme-bg: #0f0f1a;
+}
+
+body {
+  margin: 0;
+  background: var(--theme-bg);
+  color: #f0f6fc;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
