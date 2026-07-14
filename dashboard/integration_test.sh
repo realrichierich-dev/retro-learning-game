@@ -1,11 +1,15 @@
 #!/bin/bash
 # Integration test: exercises the exact REST/Auth/Storage calls the React
-# dashboard makes, via curl against local Supabase, to prove the real HTTP
-# contract works -- not just that the TypeScript compiles.
+# dashboard makes, via curl, to prove the real HTTP contract works -- not
+# just that the TypeScript compiles. Defaults to local Supabase; to run
+# against the real cloud project instead:
+#   API_URL=https://kjtnfrvsqmdkutydovba.supabase.co \
+#   ANON_KEY=sb_publishable_... \
+#   bash integration_test.sh
 set -e
 
-API_URL="http://127.0.0.1:54321"
-ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+API_URL="${API_URL:-http://127.0.0.1:54321}"
+ANON_KEY="${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}"
 EMAIL="dashboard-test-$(date +%s)@example.com"
 PASSWORD="testpassword123"
 

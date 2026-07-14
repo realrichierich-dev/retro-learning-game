@@ -32,23 +32,26 @@ setup earlier in this project.
 
 ## Step 3 -- Link this Mac's copy of the project and push the database schema
 
-Open **Terminal** and run these exactly, one at a time:
+This step needs the Supabase CLI to be logged in to your *account*
+(separate from the project's own database password from Step 1) --
+found this out by actually trying it, not by guessing, so it's worth
+doing exactly this way rather than the interactive `supabase link` flow,
+which opens a browser login that can hang if nobody's there to click
+"Allow."
 
-```bash
-cd /Users/minione/retro-learning-game
-```
-
-```bash
-supabase link
-```
-
-This will ask you to pick the project you just created from a list (use
-arrow keys, Enter to select), then ask for the database password from
-Step 1.
-
-```bash
-supabase db push
-```
+1. Go to **https://supabase.com/dashboard/account/tokens**, click
+   **Generate new token**, name it anything (e.g. "retro-learning-game
+   cli"), and copy the token it shows you (starts with `sbp_...`) --
+   shown only once. No billing involved, this is a free account feature.
+2. Open **Terminal** and run:
+   ```bash
+   cd /Users/minione/retro-learning-game
+   export SUPABASE_ACCESS_TOKEN=sbp_...the token from step 1...
+   supabase link --project-ref kjtnfrvsqmdkutydovba
+   supabase db push
+   ```
+   `db push` may additionally ask for the database password you set in
+   Step 1 (a separate thing from the access token) -- have it ready.
 
 This applies the same schema/security-rules file (`supabase/migrations/`)
 that's already been tested locally to the real cloud project. You should
