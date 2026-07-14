@@ -60,31 +60,46 @@ Opens on `http://localhost:5174` (the game client uses 5173).
 
 ## How this was verified
 
-No literal screenshot of the rendered UI in a real browser -- the two
-browser-automation tools available in the session that built this either
-block navigation to `localhost` (a real, intentional safety restriction)
-or require an interactive macOS permission dialog that would hang
-indefinitely if nobody's at the machine to click it (the same class of
-problem as the GitHub device-code issue earlier in this project -- see
-git history). Rather than force either, verification went two other
-routes, both of which exercise the *real* system rather than something
-mocked:
+Three checks, each catching a different class of problem:
 
 1. `npm run build` -- a clean production build, which catches real
    bundling/import/type errors a dev-server-only check wouldn't.
 2. `integration_test.sh` -- a script that makes the exact HTTP calls the
    React code makes (sign up, `create_tenant()` RPC, fetch tenant, update
    branding, upload a logo to Storage, confirm it's publicly readable,
-   create a content_set) directly against local Supabase's REST/Auth/
-   Storage API. All 8 steps passed on a real run -- see the script for
-   the exact requests and expected responses.
+   create a content_set) directly against Supabase's REST/Auth/Storage
+   API. Proves the backend contract works.
+3. `smoke-test.mjs` -- a headless real-browser check (Playwright) that
+   loads the app and fails on any console/page error or a blank `#root`.
+   Proves the frontend actually renders, which the other two checks
+   cannot: **this is what an earlier version of this doc called out as a
+   real, unverified gap, and it caught a real bug the first time it ran.**
 
-**This is a real gap, not a formality**: nobody has watched the actual
-rendered pages, clicked the actual buttons, or seen the color pickers/
-live preview update visually. `npm run dev` and a browser is a five-minute
-check worth doing before this ships past personal testing -- flagging
-plainly rather than implying more confidence than what was actually
-checked.
+```bash
+npm run dev              # in one terminal
+npm run smoke-test       # in another (needs: npx playwright install chromium, once)
+```
+
+### A real bug this caught: blank page from a duplicate React copy
+
+The dashboard rendered a totally blank page in an actual browser --
+`npm run build` and `tsc --noEmit` both passed clean, so this was
+invisible to every static check. `@supabase/auth-ui-react` (last
+published Jan 2024, no release since) declares `react`/`react-dom`
+`^18.2.0` as regular dependencies rather than peer dependencies, and this
+app uses React 19 -- so npm nested a second, incompatible copy of React
+18 just for that package. When its component called `useState`, it hit
+its own bundled React's hook dispatcher, which had no active render
+context in the app's actual React 19 tree: `Cannot read properties of
+null (reading 'useState')`, silently, with nothing reaching the DOM.
+
+Fixed by removing `@supabase/auth-ui-react`/`@supabase/auth-ui-shared`
+entirely (abandoned, no React 19 support to upgrade to) and hand-rolling
+the login form directly against `supabase-js`'s own
+`signInWithPassword`/`signUp`/`signInWithOAuth` -- less code than it
+sounds like, and removes a dead dependency rather than pinning the whole
+app to React 18 to accommodate it. `smoke-test.mjs` confirmed the fix
+(clean run, form renders, zero errors) before this was called done.
 
 ### Local vs. cloud auth config differs -- known, not a bug
 
