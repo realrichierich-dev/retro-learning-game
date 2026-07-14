@@ -123,6 +123,30 @@ inbox: a live human signing up with a real email and clicking the
 confirmation link, which is the appropriate way to close this out rather
 than automating around it.
 
+### Real human end-to-end test -- done
+
+Rich signed up with his real email against the live cloud project,
+clicked the confirmation link, created an organization, uploaded a video
+file, and updated branding (logo + colors) -- all through the actual
+dashboard UI, not a script. "Confirm email" was temporarily switched off
+in the Supabase dashboard to avoid the built-in mailer's 2-email/hour
+rate limit during this one test session, then switched back on
+afterward. Verified via direct SQL against the live project (Management
+API, not the app's own anon-key access) that exactly what this test
+should have produced exists and nothing else does: one `auth.users` row
+(`rich.weymer@gmail.com`), one `tenants` row ("Test Org", owned by that
+user), one `content_sets` row, and exactly two `storage.objects` rows
+(the uploaded video and the logo), both correctly scoped under that
+tenant's own path prefix. No leftover data from any earlier automated
+testing exists on the live project -- consistent with those tests having
+failed atomically or been blocked by RLS, as designed, rather than
+gotten through.
+
+This closes out Phase 1 foundation verification end to end: schema +
+RLS (migration + 11 local test cases + live-project checks), auth
+(local integration test + this real human signup), branding, and
+uploads, all proven against the real cloud project, not just locally.
+
 ```bash
 # run the integration test yourself (local Supabase must be running):
 bash integration_test.sh

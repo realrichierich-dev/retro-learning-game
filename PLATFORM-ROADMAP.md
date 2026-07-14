@@ -71,49 +71,71 @@ an incremental patch.
 
 ### Phase 1 — Foundation: auth, tenant data model, branding, uploads
 
-**Goal:** a logged-in user belonging to an organization can upload a deck,
-see it turn into a playable module, and play it with their org's branding —
-for one pilot customer, end to end.
+**Status: core foundation done and verified against the real cloud
+project, including a real human end-to-end test. Two pieces remain
+(marked below) before Phase 1's full original goal -- "upload a deck,
+see it turn into a playable module, play it with your org's branding" --
+is completely true; everything up to "playable module" is built.**
 
-**Build:**
-- Stand up Supabase (Postgres + Auth + Storage + RLS) — see Section 4 for
-  the Supabase-vs-Clerk decision this depends on.
-- Core schema: `tenants`, `memberships` (user ↔ tenant, with a role),
-  `content_sets` (one per uploaded deck/video), `concepts` (the DB version
-  of today's flat `concepts.json` — the shape in `schema.py` maps onto
-  this almost directly), `fsrs_cards` (per-user, per-concept — replaces
-  the `localStorage`-only model), `branding_configs` (logo URL + colors,
-  one per tenant).
-- Every table gets a `tenant_id` column and an RLS policy scoping all
-  reads/writes to the caller's tenant. This is the actual multi-tenancy
-  mechanism — not a separate database or schema per customer.
-- A minimal backend (Supabase Edge Functions, or a small FastAPI/Node
-  service if the logic outgrows Edge Functions) exposing: login, "list my
-  tenant's concepts," "record a battle result" (writes to `fsrs_cards`),
-  "upload a deck/video."
-- Wire the **existing** pipeline scripts into this backend as an async job:
-  upload lands in Storage → job reads it → runs `ingest_pptx`/`ingest_video`
-  → `generate_concepts` → `validate` (all reused, near-unchanged) → writes
-  rows into `concepts` scoped to that tenant/content set. This has to be
-  **async** — a Whisper transcription + several LLM calls can take way
-  longer than an HTTP request should block for. Needs a job queue of some
-  kind (a simple `jobs` table + polling worker is enough at pilot scale;
-  something like Inngest/Trigger.dev if it needs to get fancier later).
-- Game client changes: `BootScene.js` swaps the static `concepts.json`
-  import for an authenticated fetch scoped to the logged-in user's tenant;
-  `scheduler.js` gets a sync layer (write-through to `fsrs_cards`, read
-  cache from `localStorage` for offline/fast boot); `BattleScene.js` /
-  `OverworldScene.js` pull colors from a theme object fetched at boot
-  instead of the hardcoded `COLORS` constant.
-- A bare-bones admin UI (new — doesn't exist today) for a tenant admin to
-  upload content and set logo/colors. Doesn't need to be pretty for Phase 1.
+**Done:**
+- Supabase stood up — real cloud project live (not just local dev), Auth
+  + Postgres + Storage + RLS all in use.
+- Core schema shipped: `tenants`, `memberships` (user ↔ tenant, with a
+  role), `content_sets` (one per uploaded deck/video), `concepts` (the DB
+  version of the old flat `concepts.json` — `schema.py`'s shape maps onto
+  this directly), `fsrs_cards` (per-user, per-concept — the server-side
+  home the `localStorage`-only model in `game/src/scheduler.js` needs to
+  sync to, see below). Branding fields (logo URL + 3 theme colors) live
+  directly on `tenants` rather than a separate `branding_configs` table —
+  simpler, and there was no need for the extra table at this scale.
+  See `supabase/migrations/`.
+- Every table RLS-scoped by `tenant_id`. Proven three ways, not just
+  written and assumed: 11 local test cases (`supabase/rls_test.sql`)
+  covering cross-tenant isolation and the usage cap, direct SQL
+  verification against the live project's actual data after a real
+  signup, and every auth-gated endpoint confirmed to reject
+  unauthenticated calls with the live project's own RLS errors.
+- The admin UI (`dashboard/`) — email/Google auth, tenant creation,
+  branding (logo upload + color theme with live preview), and uploads
+  (wired to Storage, monthly usage cap enforced at the database layer,
+  not just suggested in the UI). A real person (Rich) signed up with his
+  real email against the live project, created an org, uploaded a video
+  file, and updated branding — all through the actual UI, confirmed via
+  direct database inspection to have produced exactly the expected rows
+  and nothing else. See `dashboard/README.md` for the full verification
+  history, including a real runtime bug (a duplicate-React-copies crash
+  from an abandoned dependency) that was found and fixed along the way.
+- A minimal-backend decision got simpler in practice than originally
+  planned here: the dashboard talks directly to Supabase's
+  auto-generated REST/Auth/Storage APIs from the browser, with RLS doing
+  the access control — no separate Edge Functions/FastAPI layer was
+  needed for auth, branding, or uploads. One *will* be needed for the
+  next piece below, since Python + LLM API keys can't run in a browser.
 
-**Est. cost at pilot scale:** Supabase free tier covers a lot (50K MAU auth,
-generous DB/storage limits) — realistically $0–25/mo (Pro tier) for the
-first several pilot customers. Backend compute (Edge Functions or a small
-Workers/Vercel deployment) is free-tier-viable at this volume. LLM/Whisper
-costs are the same per-deck cents already measured in this repo's README,
-just now metered per tenant instead of run ad hoc.
+**Not yet done (the two pieces that complete Phase 1's original goal):**
+- **The async pipeline job runner.** Uploading a file today creates a
+  `content_sets` row (`status: 'pending'`) and stores the file — nothing
+  yet actually runs `ingest_pptx.py` / `generate_concepts.py` /
+  `validate.py` against it. This is real, separate work: a small backend
+  service (Edge Functions or a small Node/Python service), a job queue
+  (a `jobs` table + polling worker is enough at pilot scale), and wiring
+  the **existing, unchanged** pipeline scripts to read from Storage and
+  write `concepts` rows instead of local files.
+- **Wiring the game client to this backend.** `game/` still reads a
+  static `game/src/data/concepts.json` and keeps FSRS progress in
+  `localStorage` only — untouched by any of this Phase 1 work.
+  `BootScene.js` needs to swap the static import for an authenticated,
+  tenant-scoped fetch; `scheduler.js` needs a sync layer (write-through
+  to `fsrs_cards`, `localStorage` as an offline cache rather than the
+  source of truth); `BattleScene.js`/`OverworldScene.js` need to pull
+  colors from a fetched theme object instead of the hardcoded `COLORS`
+  constant.
+
+**Actual cost so far:** $0. The real cloud project is on Supabase's free
+tier (50K MAU auth, generous DB/storage limits) — no paid tier needed
+yet at this scale. Once the job runner exists, LLM/Whisper costs become
+the same per-deck cents already measured in this repo's README, just
+metered per tenant instead of run ad hoc.
 
 ### Phase 2 — Security & compliance hygiene for school pilots
 
