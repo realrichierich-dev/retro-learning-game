@@ -86,6 +86,28 @@ check worth doing before this ships past personal testing -- flagging
 plainly rather than implying more confidence than what was actually
 checked.
 
+### Local vs. cloud auth config differs -- known, not a bug
+
+`supabase/config.toml` disables email confirmation (`enable_confirmations
+= false`) for fast local testing. The real cloud project uses Supabase's
+default of requiring email confirmation, plus a strict send-rate-limit on
+its built-in (non-custom-SMTP) email service -- both hit immediately when
+running `integration_test.sh` against the cloud project (`API_URL=...
+bash integration_test.sh`), since that script expects signup to return a
+session immediately, which only happens locally. This is correct,
+appropriate production behavior, not something to weaken just to make an
+automated test pass. Full authenticated-flow verification against the
+live project was instead done a different way: confirming every
+auth-gated endpoint (the `create_tenant()` RPC, `content_sets` insert,
+`tenant-uploads` storage upload) correctly *rejects* unauthenticated
+calls with the exact same RLS error signatures proven locally, plus
+confirming `create_tenant()` rolls back atomically on failure (no
+orphaned `tenants` row despite the function's own error message showing
+what it would have inserted). The one thing that genuinely needs a real
+inbox: a live human signing up with a real email and clicking the
+confirmation link, which is the appropriate way to close this out rather
+than automating around it.
+
 ```bash
 # run the integration test yourself (local Supabase must be running):
 bash integration_test.sh
