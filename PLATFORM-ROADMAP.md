@@ -112,15 +112,27 @@ is completely true; everything up to "playable module" is built.**
   needed for auth, branding, or uploads. One *will* be needed for the
   next piece below, since Python + LLM API keys can't run in a browser.
 
-**Not yet done (the two pieces that complete Phase 1's original goal):**
-- **The async pipeline job runner.** Uploading a file today creates a
-  `content_sets` row (`status: 'pending'`) and stores the file — nothing
-  yet actually runs `ingest_pptx.py` / `generate_concepts.py` /
-  `validate.py` against it. This is real, separate work: a small backend
-  service (Edge Functions or a small Node/Python service), a job queue
-  (a `jobs` table + polling worker is enough at pilot scale), and wiring
-  the **existing, unchanged** pipeline scripts to read from Storage and
-  write `concepts` rows instead of local files.
+**Done, needs a real-data test run:**
+- **The async pipeline job runner** (`pipeline/job_runner.py`). Polls
+  `content_sets` for `status: 'pending'` rows, atomically claims one
+  (`pending` → `processing` with a WHERE guard so two overlapping runs
+  can't double-process the same row), downloads the tenant's file from
+  the `tenant-uploads` Storage bucket, and runs it through the
+  **existing, unchanged** `ingest_pptx.py` / `ingest_video.py` /
+  `generate_concepts.py` / `validate.py` — the same functions
+  `run_pipeline.py`'s local CLI already uses. Auto-published concepts
+  become real `concepts` rows the game can eventually query; validation-
+  flagged concepts are recorded in the new `content_sets.review_notes`
+  column instead of silently dropped. `status` moves to `ready` (or
+  `failed`, with `error_message` set, on any exception). Chose a Python
+  polling worker over a Supabase Edge Function specifically to reuse the
+  tested Python pipeline as-is rather than reimplement python-pptx/
+  Anthropic/OpenAI calls in Deno/TypeScript — right-sized for
+  pre-revenue upload volume, no new hosting account or queue service.
+  **Still needs**: `SUPABASE_SERVICE_ROLE_KEY` added to `pipeline/.env`
+  (Rich has this pending — see `pipeline/.env`'s comments for where to
+  get it) and one real run against an actual pending upload before this
+  is considered proven, not just written. See `pipeline/README_JOB_RUNNER.md`.
 - **Wiring the game client to this backend.** `game/` still reads a
   static `game/src/data/concepts.json` and keeps FSRS progress in
   `localStorage` only — untouched by any of this Phase 1 work.
@@ -133,9 +145,11 @@ is completely true; everything up to "playable module" is built.**
 
 **Actual cost so far:** $0. The real cloud project is on Supabase's free
 tier (50K MAU auth, generous DB/storage limits) — no paid tier needed
-yet at this scale. Once the job runner exists, LLM/Whisper costs become
-the same per-deck cents already measured in this repo's README, just
-metered per tenant instead of run ad hoc.
+yet at this scale. Now that the job runner exists, running it for real
+(not `--mock`) against an upload costs the same per-deck cents already
+measured in this repo's README — metered per tenant instead of run
+ad hoc, using the same Anthropic/OpenAI keys already in
+`pipeline/.env`.
 
 ### Phase 2 — Security & compliance hygiene for school pilots
 

@@ -41,15 +41,13 @@ Opens on `http://localhost:5174` (the game client uses 5173).
   Storage object plus a `content_sets` row. The monthly usage cap
   (5/month free tier, 50/month paid -- see the migration for the exact
   policy and reasoning) is enforced by RLS on that insert, not just
-  suggested in the UI.
+  suggested in the UI. A separate worker (`pipeline/job_runner.py`, see
+  `pipeline/README_JOB_RUNNER.md`) picks up `pending` uploads and turns
+  them into real `concepts` rows -- this app doesn't run the pipeline
+  itself, it just creates the row the worker later claims.
 
 ## What's explicitly not built yet
 
-- **The pipeline job runner.** Uploading a file today creates a
-  `content_sets` row with `status: 'pending'` and stores the file --
-  nothing actually runs `pipeline/ingest_pptx.py` /
-  `generate_concepts.py` / `validate.py` against it yet. That's the next
-  slice of Phase 1 work, not part of this pass.
 - **Wiring the Phaser game client to this backend.** `game/` still reads
   `game/src/data/concepts.json` (a static file) and stores FSRS progress
   in `localStorage` only. Pointing it at real tenant-scoped data via this
